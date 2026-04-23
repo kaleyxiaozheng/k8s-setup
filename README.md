@@ -51,5 +51,18 @@
 - 🛠️ Backend Dockerfile - install python, run API server
 - 🛢 No Dockerfile, config image:postgres in k8s 
 </details>
+
+<details><summary>2. Create Kubernetes deployment yaml files (or helm chart - in dockerfile)</summary>
+
+1. deployment.yaml - create pod
+2. service.yaml - allow communication internally and externally
+</details>
+
+<details><summary>3. Deploy the app to local Cluster</summary>
+
+> [!NOTE]
+> Useful extra info
+
+</details>
 ## Steps
 1. Download UTM (Virtual Machine) and install 
