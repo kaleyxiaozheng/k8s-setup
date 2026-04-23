@@ -5,7 +5,7 @@
 | Backend |	Python | dealing with business logic, connectig database and do validation |
 | Database | PostgreSQL | Storing data information (using Docker image) |
 
-# Core Steps Breakdown
+# Project Core Steps Breakdown 
 <details>
 <summary>1. Environment Setup</summary>
 
@@ -44,5 +44,12 @@
 - Expose Service - Allow access the service from the public
 </details>
 
+# Develop and Deploy App Core Steps Breakdown
+<details><summary>1. Prepare Docker images</summary>
+
+- ⚛️ Frontend Dockerfile - use Nginx to serve static JS and HTML files
+- 🛠️ Backend Dockerfile - install python, run API server
+- 🛢 No Dockerfile, config image:postgres in k8s 
+</details>
 ## Steps
 1. Download UTM (Virtual Machine) and install 
