@@ -88,6 +88,63 @@ containerd config default | sudo tee /etc/containerd/config.toml
 | kubeadm	| The Constructor	| Only for setup/updates |	On the servers |
 | kubelet	| The Foreman	| Always running (24/7)	| On every server |
 | kubectl	| The Remote Control	| Every time you work	| On your Mac |
+
+``` bash
+# Install on all nodes
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+## Summary
+### 1. Create Master Node and name it as `k8s-master`
+> Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
+>
+>Choose Ubuntu Server ARM64 iso file
+>
+> Setup hardware:
+>
+> - RAM: save at least 2048 MB (2GB). 
+>
+> **NOTE:** A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
+>
+> - CPU: 2
+>
+> - Storage: 20GB or more (K8s images are quite large)
+>
+> Share context: skip for now
+>
+> Tick Install OpenSSH server, then you can access the master node via Mac Terminal.
+>
+> `IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
+
+$Knowlege$:   
+1. Why use LVM?
+> LVM (Logical Volume Management) is a highly practical technology. Simply put, it acts like a "flexible rack" for your hard drive. If you find your disk space running low due to too many Kubernetes images, LVM allows you to resize partitions easily without reinstalling the OS. This perfectly aligns with the "multi-dimensional capabilities" you aim to build.
+>
+> If you selected 'Use LVM' while installing Ubuntu, and later find that /var/lib/containerd (where images are stored) is full, you can 'borrow' free disk space for it with just a few simple commands, without having to start all over again.
+>
+2. `sudo apt install htop` to manage your Linux infrastructure.
+>
+> `apt` (Advanced package Tool): This is the Package Manager for Ubuntu. View it Like `App Store` for Linux command lines.
+>
+> `htop` software name. It is an interactive process viewer and system monitor
+>
+3. turn off Swap `sudo sed -i '/swap/d' /etc/fstab` 
+
+### Verify
+1. Start Master Server, input username and password, then check IP address `ip addr show enp0s1`
+![image](./img/k8s_master_login.png)
+
+2. SSH Connect from Mac terminal `ssh ubuntu@192.168.64.2`
+![image](./img/SSH_k8s_master_server.png)
+
+3. Check environment to ensure Swap is closed `free -h`
+![image](./img/verify_swap_close.png)
+> Run `sudo swapoff -a` if all values in line Swap are not 0
+
+### 2. Install Container Runtime in `k8s-master` server
+
+
 # Develop and Deploy App Core Steps Breakdown
 <details><summary>1. Prepare Docker images</summary>
 
