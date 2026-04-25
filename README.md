@@ -143,7 +143,46 @@ $Knowlege$:
 > Run `sudo swapoff -a` if all values in line Swap are not 0
 
 ### 2. Install Container Runtime in `k8s-master` server
+1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
+>
+> Run following commands either via k8s-master server or via Mac terminal (need to ssh k8s-master server first)
+```bash
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
 
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Configure the required sysctl parameters and ensure they persist across reboots.
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+# Apply sysctl parameters without a reboot.
+sudo sysctl --system
+```
+
+2. Install containerd
+```bash
+sudo apt update
+sudo apt install -y containerd
+```
+
+3. Generate the default configuration file (Critical Step)
+```bash
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+# Modify the configuration file to use SystemdCgroup (for better performance and stability)
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+sudo systemctl restart containerd
+```
+
+4. Verify containerd status with command `sudo systemctl status containerd`
+![image](./img/verify_containerd_status.png)
 
 # Develop and Deploy App Core Steps Breakdown
 <details><summary>1. Prepare Docker images</summary>
