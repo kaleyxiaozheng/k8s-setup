@@ -299,5 +299,6 @@ kubectl port-forward service/backend-service 3000:3000
 ```
 </details>
 
-
+**TIP:**
+1. `sudo poweroff` to turn off k8s-master node
 预留问题1: 以后使用https
