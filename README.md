@@ -95,8 +95,8 @@ sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-<details><summary>Summary</summary>
-1. Create Master Node and name it as `k8s-master`
+## Summary
+### 1. Create Master Node and name it as `k8s-master`
 > Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
 >
 >Choose Ubuntu Server ARM64 iso file
@@ -134,7 +134,7 @@ $Knowlege$:
 > **TIP:** Why do we go through the trouble of modifying /etc/fstab?
 Because Kubernetes is designed around the principle of “full control.” If the system allows swap (virtual memory), then when memory runs low, Linux may silently move data to disk. This makes it difficult for Kubernetes to accurately measure and manage Pod performance.
 
-Verify
+### Verify
 1. Start Master Server, input username and password, then check IP address `ip addr show enp0s1`
 ![image](./img/k8s_master_login.png)
 
@@ -145,7 +145,7 @@ Verify
 ![image](./img/verify_swap_close.png)
 > Run `sudo swapoff -a` if all values in line Swap are not 0
 
-2. Install Container Runtime in `k8s-master` server
+### 2. Install Container Runtime in `k8s-master` server
 1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
 >
 > Run following commands either via k8s-master server or via Mac terminal (need to ssh k8s-master server first)
@@ -281,7 +281,7 @@ You may notice in newer installation guides that keys are usually placed in the 
 •	In the past: Keys were globally stored in /etc/apt/trusted.gpg. This posed a security risk because if a single key was compromised, every repository in the system was potentially exposed.
 •	Current (Best Practice): Each software source's key is stored independently and bound to its specific .list file. This follows the Principle of Least Privilege and is the more secure method currently recommended by Kubernetes.</details>
 
-</details>
+
 # Develop and Deploy App Core Steps Breakdown
 <details><summary>1. Prepare Docker images</summary>
 
