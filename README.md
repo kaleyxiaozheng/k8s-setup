@@ -151,7 +151,8 @@ Kubernetes requires full control of memory:
 Because Kubernetes is designed around the principle of “full control.” If the system allows swap (virtual memory), then when memory runs low, Linux may silently move data to disk. This makes it difficult for Kubernetes to accurately measure and manage Pod performance.
 </details>
 
-### Verify
+<details><summary>Verify</summary>
+
 1. Start Master Server, input username and password, then check IP address `ip addr show enp0s1`
 ![image](./img/k8s_master_login.png)
 
@@ -159,13 +160,19 @@ Because Kubernetes is designed around the principle of “full control.” If th
 ![image](./img/SSH_k8s_master_server.png)
 
 3. Check environment to ensure Swap is closed `free -h`
+```bash
+# all values in line Swap should be 0
+sudo swapoff -a
+```
 ![image](./img/verify_swap_close.png)
-> Run `sudo swapoff -a` if all values in line Swap are not 0
+</details>
 
 ### 2. Install Container Runtime in `k8s-master` server
+<details><summary>Steps</summary>
+
 1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
->
-> Run following commands either via k8s-master server or via Mac terminal (need to ssh k8s-master server first)
+
+2. Run following commands either via k8s-master server or via Mac terminal (need to ssh k8s-master server first)
 ```bash
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
@@ -185,46 +192,8 @@ EOF
 # Apply sysctl parameters without a reboot.
 sudo sysctl --system
 ```
-<details><summary>Explanation:</summary>
-以上设置是Kubernetes网络配置中非常低层。目的是确保容器之间的网络流量能够被Linux内核正确地拦截、转发和处理。以上代码是在Master Node上操作。
 
-1. 开启内核模式（设置桥接流量）
-Kubernetes 的 Pod 网络插件（如 Calico 或 Flannel）通常依赖 overlay 和 br_netfilter 这两个内核模块。
-•	overlay: 允许容器文件系统的分层叠加。
-•	br_netfilter: 使得经过 Linux 网桥的流量能够被 iptables 处理。
-```bash
-# 创建一个配置文件，让系统在重启后自动加载这些模块
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
-overlay
-br_netfilter
-EOF
-
-# 立即手动加载模块
-sudo modprobe overlay
-sudo modprobe br_netfilter
-```
-2. 配置 sysctl 参数 (允许 iptables 检查流量)。加载了模块后，你还需要显式地告诉 Linux 内核，把网桥上的流量交给 iptables 规则去过滤。这是实现 K8s Service（负载均衡）和 Network Policy（安全策略）的基础。
-```bash
-# 创建 sysctl 配置文件
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-iptables  = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward                 = 1
-EOF
-
-# 应用参数，无需重启
-sudo sysctl --system
-```
-3. 为什么要这样做？（原理拆解）
-在默认情况下，Linux 的网桥（Bridge）工作在数据链路层（L2），而 iptables 工作在网络层（L3）。
-•	如果没有 br_netfilter: 容器之间的二层流量会直接通过网桥转发，绕过 iptables。
-•	后果: K8s 无法通过 iptables 规则来实现 Service 的转发，也无法通过 Network Policy 来阻断不合规的流量。
-4. 验证配置是否生效
-配置完成后，你可以运行以下命令检查：
-	1.	检查模块: lsmod | grep br_netfilter （如果有输出则正常）。
-	2.	检查内核参数: sysctl net.bridge.bridge-nf-call-iptables （输出应为 1）。
-</details>
-
+📌**Reference** see `Explantion 1`
 
 2. Install containerd
 ```bash
@@ -281,7 +250,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 ![image](./img/install_kubelet_kubeadm_kubectl.png)
-
+</details>
 <details><summary>💡 Knowledge: Supply Chain Security in Kubernetes Installation</summary>
 
 ### 1. Why download k8s signing key?
@@ -443,4 +412,44 @@ kubectl port-forward service/backend-service 3000:3000
 <details><summary>☝️🤓 TIP</summary>
 1. `sudo poweroff` to turn off k8s-master node
 预留问题1: 以后使用https
+</details>
+
+<details><summary>Explanation  1</summary>
+以上设置是Kubernetes网络配置中非常低层。目的是确保容器之间的网络流量能够被Linux内核正确地拦截、转发和处理。以上代码是在Master Node上操作。
+
+1. 开启内核模式（设置桥接流量）
+Kubernetes 的 Pod 网络插件（如 Calico 或 Flannel）通常依赖 overlay 和 br_netfilter 这两个内核模块。
+•	overlay: 允许容器文件系统的分层叠加。
+•	br_netfilter: 使得经过 Linux 网桥的流量能够被 iptables 处理。
+```bash
+# 创建一个配置文件，让系统在重启后自动加载这些模块
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+# 立即手动加载模块
+sudo modprobe overlay
+sudo modprobe br_netfilter
+```
+2. 配置 sysctl 参数 (允许 iptables 检查流量)。加载了模块后，你还需要显式地告诉 Linux 内核，把网桥上的流量交给 iptables 规则去过滤。这是实现 K8s Service（负载均衡）和 Network Policy（安全策略）的基础。
+```bash
+# 创建 sysctl 配置文件
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+# 应用参数，无需重启
+sudo sysctl --system
+```
+3. 为什么要这样做？（原理拆解）
+在默认情况下，Linux 的网桥（Bridge）工作在数据链路层（L2），而 iptables 工作在网络层（L3）。
+•	如果没有 br_netfilter: 容器之间的二层流量会直接通过网桥转发，绕过 iptables。
+•	后果: K8s 无法通过 iptables 规则来实现 Service 的转发，也无法通过 Network Policy 来阻断不合规的流量。
+4. 验证配置是否生效
+配置完成后，你可以运行以下命令检查：
+	1.	检查模块: lsmod | grep br_netfilter （如果有输出则正常）。
+	2.	检查内核参数: sysctl net.bridge.bridge-nf-call-iptables （输出应为 1）。
 </details>
