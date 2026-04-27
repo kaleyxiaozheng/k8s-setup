@@ -119,7 +119,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 >
 > `IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
 
-<details><summary>💡 Knowledge</summary>
+<details><summary>💡 Knowledge: LVM and htop</summary>
 
 ### 1. Why use LVM?
 LVM (Logical Volume Management) acts like a "flexible rack" for the hard drive. 
@@ -281,30 +281,47 @@ sudo apt-mark hold kubelet kubeadm kubectl
 
 ![image](./img/install_kubelet_kubeadm_kubectl.png)
 
-<details><summary>💡 Knowledge</summary>
-1. Why download k8s signing key?
-> This is essentially the foundational step in building Software Supply Chain Security.
->
-> Downloading the signing key is about verifying the authenticity and integrity of the software packages. It ensures that the tools you are downloading (like kubeadm and kubelet) are genuinely released by the official Kubernetes project and haven't been tampered with or "injected" with malicious code by a third party.
->
- > <details><summary>Here are the deeper reasons behind this</summary> 
-> 1. Preventing Man-in-the-Middle (MITM) Attacks. When you download software via `apt` or `yum`, the data packets travel through numerous routers and mirror servers. Without key verification, a hacker could intercept your request and serve you a counterfeit installation package containing a Trojan.
->
-> - The Role of the Key: When the official maintainers release a package, they use a private key to create a digital signature for the file.
->
-> - Your Role: The "signing key" you download is actually the public key. The apt tool uses this public key to decrypt and verify the package signature. If they don't match, the system will reject the installation and throw an error.  
->
-> 2.Establishing a Chain of Trust
-Linux package managers (like apt) do not trust third-party repositories by default.
->
-> •	When you add the Kubernetes mirror address to your sources.list, if you don't provide the corresponding GPG key, the system will prompt: "The following signatures couldn't be verified" during an apt update.
->
-> •	This happens because the system cannot confirm the identity of this new repository. Importing the key is your way of telling the operating system: "I trust this repository; allow it to proceed."
->
-> 3.Evolution of Key Formats (The Fine Print)
-You may notice in newer installation guides that keys are usually placed in the /etc/apt/keyrings/ directory and processed using gpg --dearmor.
-•	In the past: Keys were globally stored in /etc/apt/trusted.gpg. This posed a security risk because if a single key was compromised, every repository in the system was potentially exposed.
-•	Current (Best Practice): Each software source's key is stored independently and bound to its specific .list file. This follows the Principle of Least Privilege and is the more secure method currently recommended by Kubernetes.</details>
+<summary>💡 Knowledge: Supply Chain Security in Kubernetes Installation</summary>
+
+### 1. Why download k8s signing key?
+### 🔐 What is this step?
+
+Downloading the signing key is a **core practice of Software Supply Chain Security**.
+
+It ensures that tools like `kubeadm`, `kubelet`, and `kubectl`:
+- come from the **official Kubernetes source**
+- have **not been tampered with**
+- are **safe to install**
+
+---
+
+### 🛡️ Why it matters
+#### 1. Prevent Man-in-the-Middle (MITM) attacks
+
+When installing packages via `apt`:
+- Data travels through multiple network nodes
+- Attackers could intercept and replace packages
+
+**How signing protects you:**
+- Maintainers sign packages using a **private key**
+- Your system verifies using the **public key**
+- If verification fails → installation is blocked
+
+---
+
+### 2. Establishing a Chain of Trust
+
+By default, Linux package managers (e.g. `apt`) **do not trust third-party repositories**.
+
+When you add a new repository (such as Kubernetes), the system has:
+- no prior trust relationship
+- no way to verify package authenticity
+
+---
+
+#### ⚠️ What happens without a signing key?
+
+During `apt update`, the signatures couldn't be verified.
 </details>
 
 # Develop and Deploy App Core Steps Breakdown
@@ -422,6 +439,7 @@ kubectl port-forward service/backend-service 3000:3000
 ```
 </details>
 
-**TIP:**
+<details><summary>☝️🤓 TIP</summary>
 1. `sudo poweroff` to turn off k8s-master node
 预留问题1: 以后使用https
+</details>
