@@ -281,7 +281,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 
 ![image](./img/install_kubelet_kubeadm_kubectl.png)
 
-<summary><summary>💡 Knowledge: Supply Chain Security in Kubernetes Installation</summary>
+<details><summary>💡 Knowledge: Supply Chain Security in Kubernetes Installation</summary>
 
 ### 1. Why download k8s signing key?
 ### 🔐 What is this step?
