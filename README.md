@@ -193,7 +193,7 @@ EOF
 sudo sysctl --system
 ```
 
-📌**Reference** see `Explantion 1`
+📌 **Reference** see `Explantion 1`
 
 2. Install containerd
 ```bash
