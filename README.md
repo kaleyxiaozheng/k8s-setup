@@ -98,26 +98,27 @@ sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 ## Summary
-### 1. Create Master Node and name it as `k8s-master`
-> Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
->
->Choose Ubuntu Server ARM64 iso file
->
-> Setup hardware:
->
-> - RAM: save at least 2048 MB (2GB). 
->
-> **NOTE:** A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
->
-> - CPU: 2
->
-> - Storage: 20GB or more (K8s images are quite large)
->
-> Share context: skip for now
->
-> Tick Install OpenSSH server, then you can access the master node via Mac Terminal.
->
-> `IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
+### 1. Create Master Node with name `k8s-master`
+<details><summary>Steps</summary>
+
+1. Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
+2. Choose Ubuntu Server ARM64 iso file
+3. Setup hardware:
+
+- RAM: save at least 2048 MB (2GB). 
+
+ **NOTE:** A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
+
+- CPU: 2
+
+- Storage: 20GB or more (K8s images are quite large)
+
+Share context: skip for now
+
+Tick Install OpenSSH server, then you can access the master node via Mac Terminal.
+
+`IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
+</details>
 
 <details><summary>💡 Knowledge: LVM and htop</summary>
 
