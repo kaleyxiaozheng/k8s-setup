@@ -120,20 +120,33 @@ sudo apt-mark hold kubelet kubeadm kubectl
 > `IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
 
 <details><summary>💡 Knowledge</summary>
-1. Why use LVM?
-> LVM (Logical Volume Management) is a highly practical technology. Simply put, it acts like a "flexible rack" for your hard drive. If you find your disk space running low due to too many Kubernetes images, LVM allows you to resize partitions easily without reinstalling the OS. This perfectly aligns with the "multi-dimensional capabilities" you aim to build.
->
-> If you selected 'Use LVM' while installing Ubuntu, and later find that /var/lib/containerd (where images are stored) is full, you can 'borrow' free disk space for it with just a few simple commands, without having to start all over again.
->
-2. `sudo apt install htop` to manage your Linux infrastructure.
->
-> `apt` (Advanced package Tool): This is the Package Manager for Ubuntu. View it Like `App Store` for Linux command lines.
->
-> `htop` software name. It is an interactive process viewer and system monitor
->
-3. turn off Swap `sudo sed -i '/swap/d' /etc/fstab` 
 
-> **TIP:** Why do we go through the trouble of modifying /etc/fstab?
+### 1. Why use LVM?
+LVM (Logical Volume Management) acts like a "flexible rack" for the hard drive. 
+
+- LVM allows you to resize partitions easily without reinstalling the OS
+- Ideal for Kubernetes image storage
+---
+### 2. Install htop
+```bash
+# Manage your Linux infrastructure
+sudo apt install htop
+```
+- `apt` (Advanced package Tool): This is the Package Manager for Ubuntu. View it Like `App Store` for Linux command lines.
+- `htop` software name. It is an interactive process viewer and system monitor
+---
+### 3. turn off Swap 
+```bash
+sudo sed -i '/swap/d' /etc/fstab
+```
+🤔💭 Why?
+
+Kubernetes requires full control of memory:
+
+- Swap hides real memory usage
+- Scheduler decisions become inaccurate
+
+**TIP:** Why do we go through the trouble of modifying /etc/fstab?
 Because Kubernetes is designed around the principle of “full control.” If the system allows swap (virtual memory), then when memory runs low, Linux may silently move data to disk. This makes it difficult for Kubernetes to accurately measure and manage Pod performance.
 </details>
 
