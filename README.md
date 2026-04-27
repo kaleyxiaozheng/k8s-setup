@@ -1,9 +1,11 @@
 # Login project design
-| Components | Tech Stack | Description |
-| :--- | :--- | :--- |
-| Frontend | Typescript | UI - sending log on/log in request |
-| Backend |	Python | dealing with business logic, connectig database and do validation |
-| Database | PostgreSQL | Storing data information (using Docker image) |
+| Components | Tech Stack | Description | K8s Resource Objects |
+| :--- | :--- | :--- | :--- |
+| Frontend | Typescript + Vue (Nginx) | Take input from public users | Deployment + Service (ClusterIP) |
+| Backend |	Python (FastAPI/Flask) | dealing with business logic, such as connecting database, data validation | Deployment HorizontalPodAutoscaler | 
+| Database | PostgreSQL | Storing data information | StatefulSet + PersistentVolumeClaim |
+| Exposure Service | Ingress | | Ingress Controller (NGINX/Traefix) |
+</br>
 
 # Project Core Steps Breakdown 
 <details>
@@ -117,7 +119,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 >
 > `IPv4 address for enp0s1: 192.168.64.2` is somewhere telling you the IP address like family address.
 
-$Knowlege$:   
+<details><summary>💡 Knowledge</summary>
 1. Why use LVM?
 > LVM (Logical Volume Management) is a highly practical technology. Simply put, it acts like a "flexible rack" for your hard drive. If you find your disk space running low due to too many Kubernetes images, LVM allows you to resize partitions easily without reinstalling the OS. This perfectly aligns with the "multi-dimensional capabilities" you aim to build.
 >
@@ -133,6 +135,7 @@ $Knowlege$:
 
 > **TIP:** Why do we go through the trouble of modifying /etc/fstab?
 Because Kubernetes is designed around the principle of “full control.” If the system allows swap (virtual memory), then when memory runs low, Linux may silently move data to disk. This makes it difficult for Kubernetes to accurately measure and manage Pod performance.
+</details>
 
 ### Verify
 1. Start Master Server, input username and password, then check IP address `ip addr show enp0s1`
@@ -244,8 +247,15 @@ sudo apt-get install -y apt-transport-https ca-certificates curl
 
 # 2. Download k8s signing key
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# Verify
+gpg --show-keys /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# or better way
+gpg --with-fingerprint --show-keys /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-# 3. Add software repository
+# 3. Create a mandatory binding to achieve three critical security goals:
+# Goal 1: Scope Isolation: Only this specific Kubernetes repository is allowed to be verified by this specific key.
+# Goal 2: Principle of Least Privilege, grant it the authority to trust only Kubernetes-related packages.
+# Goal 3: Simplified Auditing and Maintenance: When you eventually need to perform Key Rotation (updating expired keys) or remove a repository, you know exactly which file corresponds to which service. 
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 # 4. Installation
@@ -256,7 +266,9 @@ sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-$Knowlege$:  
+![image](./img/install_kubelet_kubeadm_kubectl.png)
+
+<details><summary>💡 Knowledge</summary>
 1. Why download k8s signing key?
 > This is essentially the foundational step in building Software Supply Chain Security.
 >
@@ -280,7 +292,7 @@ Linux package managers (like apt) do not trust third-party repositories by defau
 You may notice in newer installation guides that keys are usually placed in the /etc/apt/keyrings/ directory and processed using gpg --dearmor.
 •	In the past: Keys were globally stored in /etc/apt/trusted.gpg. This posed a security risk because if a single key was compromised, every repository in the system was potentially exposed.
 •	Current (Best Practice): Each software source's key is stored independently and bound to its specific .list file. This follows the Principle of Least Privilege and is the more secure method currently recommended by Kubernetes.</details>
-
+</details>
 
 # Develop and Deploy App Core Steps Breakdown
 <details><summary>1. Prepare Docker images</summary>
