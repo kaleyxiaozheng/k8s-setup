@@ -212,7 +212,7 @@ sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/con
 sudo systemctl restart containerd
 ```
 
-4. Verify containerd status with command `sudo systemctl status containerd`
+4. Verify containerd status
 ```bash
 # Reboot and verify
 sudo systemctl restart containerd
@@ -250,6 +250,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 ![image](./img/install_kubelet_kubeadm_kubectl.png)
+
 </details>
 <details><summary>💡 Knowledge: Supply Chain Security in Kubernetes Installation</summary>
 
@@ -292,6 +293,53 @@ When you add a new repository (such as Kubernetes), the system has:
 #### ⚠️ What happens without a signing key?
 
 During `apt update`, the signatures couldn't be verified.
+</details>
+
+### 3. Join working nodes
+<details><summary>Steps</summary>
+
+1. Base Environment Setup (Execute on all Nodes)
+
+- **Environment Prerequisites** (Ensure kubeadm join successfully)
+  - **Unique Hostname**：Unique hostnames across the cluster. (e.g., k8s-worker1, k8s-worker2).
+  - **Unique MAC/Product_UUID**：Unique MAC addresses and product_uuid for each VM. (Select the "Generate new MAC address" option for VMs cloning). 
+  - **Disable Swap**: Swap must be permanently disabled.`sudo swapoff -a`
+  - **Install CRI (containerd)**
+  - **Install K8s Binaries**: Install kubeadm, kubelet, and kubectl. Their versions must be consistent with the Control Plane (Master Node).
+
+- 1️⃣: Create k8s-worker1 on UTM via clone the Master VM, perform a `de-identification` cleanup, and then join it to the cluster. This avoids redundant installation of Docker, kubeamd, and dependencies, maximizing efficiency. 
+
+do clone using terraform and pipelines
+What security things here? 
+
+
+第二步：获取 Master 的 Join Token
+回到你的 k8s-master 节点，运行以下命令获取加入集群的指令：
+kubeadm token create --print-join-command
+
+输出内容大概长这样（记住这个输出，一会儿在 Worker 上跑）：
+kubeadm join 192.168.x.x:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
+提示：如果 Token 过期了（默认 24 小时），随时可以用这个命令重新生成。
+第三步：在 Worker Node 上执行 Join
+分别登录到你的三个 Worker Node，直接运行上面拿到的 kubeadm join 命令。
+运行成功后，你会看到类似 This node has joined the cluster 的提示。
+第四步：在 Master 上验证
+回到 k8s-master，查看节点状态：
+kubectl get nodes
+
+可能遇到的状态：
+•	Ready: 完美，一切正常。
+•	NotReady: 通常是因为 CNI (Network Plugin) 还没装或者还没初始化好。由于你要练习 Istio，建议先安装一个基础 CNI（如 Cilium 或 Calico），因为 Istio 依赖 Pod 之间的网络通畅。
+第五步：针对你项目的进阶建议
+作为未来的 AI Infra/Security 工程师，在创建 Worker Node 时建议考虑以下细节：
+	1.	资源预留 (Isolation)：
+在 UTM 中给 Worker 分配资源时，考虑到你要跑 PostgreSQL (StatefulSet) 和 Istio (Sidecars)，每个 Worker 建议至少 2 vCPU / 4GB RAM。Istio 的 Sidecar 会额外消耗内存。
+	2.	Label 节点 (Tainting & Labeling)：
+AI 任务通常需要调度到特定节点。你可以练习给其中一个 Worker 打上标签：
+
+这能帮你练习之后的 nodeSelector 或 Affinity 配置。
+	3.	安全加固 (CIS Benchmark)：
+在加入节点后，可以尝试运行 kube-bench 扫描一下 Worker 的安全配置。这是 Security 岗位面试时可以聊的“实战细节”。
 </details>
 
 # Develop and Deploy App Core Steps Breakdown
