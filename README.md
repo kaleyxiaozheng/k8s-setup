@@ -501,3 +501,8 @@ sudo sysctl --system
 	1.	检查模块: lsmod | grep br_netfilter （如果有输出则正常）。
 	2.	检查内核参数: sysctl net.bridge.bridge-nf-call-iptables （输出应为 1）。
 </details>
+
+Master: ubuntu (12345)
+Worker_1: 
+Worker_2: 
+Worker_3: 
