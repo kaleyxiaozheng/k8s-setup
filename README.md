@@ -15,7 +15,6 @@
 - Install Operating System (OS) - Ubuntu 24.04
 - Configure Network & SSH
 - Disable Swap (`Prerequisites for running Kubernetes`)
-
 </details>
 
 <details><summary>2. Runtime Installation</summary>
@@ -30,49 +29,7 @@
 - Add Kubernetnes Repository
 - Install Kubeadm, Kubelet, and Kubectl
 - Hold packages - Prevent automatic updates from causing cluster incompatibility 
-</details>
-
-<details><summary>4. Cluster Initialization</summary>
-
-1. Initialize Control Plane - operate `kubeadm init`
-2. Set up Kubeconfig
-3. Deploy Pod Network Add-on (CNI) - Allow communications between pods.
-</details>
-
-<details><summary>5. Verfication & Deployment</summary>
-
-- Check Node Status `kubectl get nodes`
-- Deploy Login Application
-- Expose Service - Allow access the service from the public
-</details>
-
-## Steps
-- [1. Environment Setup](#1-environment-setup)
-- [2. Runtime Installation](#2-runtime-installation)
-- [3. K8S Components Installation](#3-k8s-components-installation)
----
-## 1. Environment Setup
-Simulate multiple Linux servers using Virtual Machines to build a real cluster.
-
-Recommended tools: UTM + Ubuntu Server
-
-1. Download and install [UTM](https://docs.getutm.app/installation/ios/)
-2. Download Ubuntu Server for ARM os
-3. Set up 2 or 3 VM, 1 for Master Node, 1 or 2 for Worker Nodes
-
-## 2. Runtime Installation
-1. Install containerd in each VM
-```bash
-# install containerd
-sudo apt-get update
-sudo apt-get install -y containerd
-# config containerd
-sudo mkdir -p /etc/containerd
-containerd config default | sudo tee /etc/containerd/config.toml
-```
-
-## 3. K8S Components Installation
-- kubelet(The "Site Manager")
+- - kubelet(The "Site Manager")
 >
 > - role: The Node Agent
 >
@@ -90,12 +47,26 @@ containerd config default | sudo tee /etc/containerd/config.toml
 | kubeadm	| The Constructor	| Only for setup/updates |	On the servers |
 | kubelet	| The Foreman	| Always running (24/7)	| On every server |
 | kubectl	| The Remote Control	| Every time you work	| On your Mac |
+</details>
 
-``` bash
-# Install on all nodes
-sudo apt-get install -y kubelet kubeadm kubectl
-sudo apt-mark hold kubelet kubeadm kubectl
-```
+<details><summary>4. Cluster Initialization</summary>
+
+1. Initialize Control Plane - operate `kubeadm init`
+2. Set up Kubeconfig
+3. Deploy Pod Network Add-on (CNI) - Allow communications between pods.
+</details>
+
+<details><summary>5. Verfication & Deployment</summary>
+
+- Check Node Status `kubectl get nodes`
+- Deploy Login Application
+- Expose Service - Allow access the service from the public
+</details>
+
+---
+
+## 3. K8S Components Installation
+
 
 ## Summary
 ### 1. Create Master Node with name `k8s-master`
