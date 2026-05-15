@@ -263,7 +263,7 @@ When you add a new repository (such as Kubernetes), the system has:
 During `apt update`, the signatures couldn't be verified.
 </details>
 
-### 3. Join working nodes
+### 3. Create and Join k8s worker nodes
 <details><summary>📝 Steps</summary>
 
 #### 1. Base Environment Setup (Execute on all Nodes)
