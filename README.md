@@ -414,10 +414,6 @@ AI 任务通常需要调度到特定节点。你可以练习给其中一个 Work
 - Input account password, or create/update/delete new account, monitor endpoint logs `kubectl logs <backend-pod-names>`
 </details>
 
-Environment Setup
-## Steps
-1. Download UTM (Virtual Machine) and install 
-
 <details><summary>k8s deployment yaml example</summary>
 
 - db.yaml
