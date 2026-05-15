@@ -135,7 +135,7 @@ sudo swapoff -a
 ![image](./img/verify_swap_close.png)
 </details>
 
-### 2. Install Container Runtime in `k8s-master` server
+### 2. Install Container Runtime and K8S Components in `k8s-master` server
 <details><summary>📝 Steps</summary>
 
 1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
