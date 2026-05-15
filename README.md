@@ -361,9 +361,29 @@ Verify:
 >> 1. Refresh DHCP Lease: Force the network service to request a fresh, unique IP address from the gateway.
 >> - release current IP: `sudo dhclient -r`
 >> - obtain a new IP:`sudo dhclient`
->> 2. 
+>> 2. Check Machine ID (Deep Fix)
+>> - Cloned Linux systems often receive the same IP address from DHCP because they share the same /`cat etc/machine-id`
+>> 3. 🔄 Do following steps if ID is identical
+>> - `sudo rm /etc/machine-id`
+>> - `sudo dbus-uuidgen --ensure=/etc/machine-id`
+>> - `sudo reboot`
 
-
+> - 🔎 ifconfig and dhclient are often deprecated or not installed in Ubuntu by default. Can use `sudo netplan apply`. If it does not work. Will apply following steps to fix machine ID
+>> 1. Clear the machine-id file
+>>> - `sudo truncate -s 0 /etc/machine-id`
+>>> - `sudo rm /var/lib/dbus/machine-id`
+>>> - `sudo ln -s /etc/machine-id /var/lib/dbus/machine-id`
+>> 2. Generate a new unique ID
+>>> - `sudo dbus-uuidgen --ensure=/etc/machine-id` 
+>> 3. Reboot the VM to trigger a new DHCP request
+>>> - `sudo reboot`
+`
+>> 4. 🛡️ Verification in single Worker Node
+>> - `ip addr show` or `ip addr show enp0s1`
+>
+![image](./img/k8s-worker-1-new-ip.png)
+![image](./img/k8s-worker-2-new-ip.png)
+![image](./img/k8s-worker-3-new-ip.png)
 
 第二步：获取 Master 的 Join Token
 回到你的 k8s-master 节点，运行以下命令获取加入集群的指令：
