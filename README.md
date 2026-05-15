@@ -65,10 +65,7 @@
 
 ---
 
-## 3. K8S Components Installation
-
-
-## Summary
+# Summary
 ### 1. Create Master Node with name `k8s-master`
 <details><summary>Steps</summary>
 
