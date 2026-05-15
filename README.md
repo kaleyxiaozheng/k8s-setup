@@ -65,7 +65,7 @@
 
 ---
 
-# Summary
+# Kubernetes cluster Creation Core Steps Breakdown
 ### 1. Create Master Node with name `k8s-master`
 <details><summary>📝 Steps</summary>
 
