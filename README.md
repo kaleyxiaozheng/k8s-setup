@@ -298,19 +298,71 @@ During `apt update`, the signatures couldn't be verified.
 ### 3. Join working nodes
 <details><summary>Steps</summary>
 
-1. Base Environment Setup (Execute on all Nodes)
+#### 1. Base Environment Setup (Execute on all Nodes)
 
 - **Environment Prerequisites** (Ensure kubeadm join successfully)
-  - **Unique Hostname**：Unique hostnames across the cluster. (e.g., k8s-worker1, k8s-worker2).
+  - **Unique Hostname**：Unique hostnames across the cluster. (e.g., k8s-worker-1, k8s-worker-2).
   - **Unique MAC/Product_UUID**：Unique MAC addresses and product_uuid for each VM. (Select the "Generate new MAC address" option for VMs cloning). 
   - **Disable Swap**: Swap must be permanently disabled.`sudo swapoff -a`
   - **Install CRI (containerd)**
   - **Install K8s Binaries**: Install kubeadm, kubelet, and kubectl. Their versions must be consistent with the Control Plane (Master Node).
 
-- 1️⃣: Create k8s-worker1 on UTM via clone the Master VM, perform a `de-identification` cleanup, and then join it to the cluster. This avoids redundant installation of Docker, kubeamd, and dependencies, maximizing efficiency. 
+  👉 Step 1: Create 3 worker nodes in UTM
+k8s-worker-1 on UTM by cloning the Master Node:
+    > - Ensure k8s-master server is down
+    > - Right click `k8s-master` and choose `Clone`
+    > - ![image](./img/clone_master_node.png)
+    > - Rename the new server as `k8s-worker-1`, `k8s-worker-2`, and `k8s-worker-3`
+    > - ![image](./img/edit-k8s-worker-nodes.png)
+    > - ![image](./img/rename_k8s_worker_nodes.png)
+    > - **Note**: This avoids redundant installation of Docker, kubeamd, and dependencies, maximizing efficiency.
 
-do clone using terraform and pipelines
-What security things here? 
+   👉 Step 2: Reset Network Identity (Critical Step):
+    > - Go to the Settings -> Network menu for k8s-worker1
+    > - Click the `Refresh/Random` button next to the MAC Address field to generate a new MAC address
+    > - ![image](./img/reset_network_k8s_worker_nodes.png)
+    > - **Note**: Skipping this step will cause a network conflict between the Master and Worker nodes due to identical MAC addresses.
+    > - Start k8s-worker1 and log in
+    > - ![image](./img/login_k8s_worker_nodes.png)
+
+  👉 Step 3: Cleanup and Renaming (De-identifciation)
+    > - Since this node was cloned from the Master, it carries the Master's "DNA." We must clean it thoroughly to remove its original identity
+    > - 1️⃣: rename host name: `sudo hostnamectl set-hostname k8s-worker-1`
+    > - 2️⃣: reset Kubernetest state :
+    >>>  - clean up all legacy cluster configurations and certificates: `sudo kubeadm reset -f`
+    >>>  - delete old local configurations: `rm -rf ~/.kube`, then `sudo rm -rf /etc/kubernetes/`
+    > - 3️⃣: confirm IP address `ip addr show enp0s1`
+    > - 4️⃣: reboot and login to `k8s-worker-1`: `sudo reboot` or `exec bash`(logoff and login, do not reboot the server)
+    > - ![image](./img/cleanup_and_rename.png)
+
+  ⚠️ **A Crucial Check** (Specifically for DevOps Best Practices) - Since this node was cloned from the Master, your /etc/hosts file likely still contains outdated information or self-referential entries that point to the wrong IP
+  > - `cat /etc/hosts`, rename `k8s-master` to `k8s-worker-1` in line `127.0.1.1` by command `sudo nano /etc/hosts`, then `exec bash`
+  > - ![image](./img/crucial_check_1.png)
+  > - ![image](./img/crucial_check_2.png)
+  > - verify if it sesolves to `127.0.1.1`: `ping k8s-worker-1 -c 2`
+  > - confirm the IP has not changed: `ip addr show enp0s1`
+  > - ![image](./img/crucial_check_3.png)
+  > 
+Verify:
+![image](./img/k8s-worker-1.png)
+![image](./img/k8s-worker-2.png)
+![image](./img/k8s-worker-3.png)
+
+🚫 Within the same Kubernetes cluster, every node must have a unique IP address: 
+> If all three Worker Nodes share the exact same IP address, they will clash at the network layer. This will cause the `kubeadm join` command to fail, or even if they manage to join, Pod communication will completely collapse.
+>
+> **Why do they have the same IP?**
+>> Since these nodes were created via Cloning, they are essentially "carbon copies" of the Master. Even if you clicked "Random" in the UTM interface to generate a new MAC address, conflicts often persist because:
+>> - The VMs might have a Static IP pre-configured in their settings.
+>> - They share the same Machine ID, which can cause a DHCP server to assign the same IP address to different machines.
+>
+> **How to fix?**
+>> Perform the following steps in order, on every Worker Node:
+>> 1. Refresh DHCP Lease: Force the network service to request a fresh, unique IP address from the gateway.
+>> - release current IP: `sudo dhclient -r`
+>> - obtain a new IP:`sudo dhclient`
+>> 2. 
+
 
 
 第二步：获取 Master 的 Join Token
