@@ -67,7 +67,7 @@
 
 # Summary
 ### 1. Create Master Node with name `k8s-master`
-<details><summary>Steps</summary>
+<details><summary>📝 Steps</summary>
 
 1. Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
 2. Choose Ubuntu Server ARM64 iso file
@@ -136,7 +136,7 @@ sudo swapoff -a
 </details>
 
 ### 2. Install Container Runtime in `k8s-master` server
-<details><summary>Steps</summary>
+<details><summary>📝 Steps</summary>
 
 1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
 
@@ -264,7 +264,7 @@ During `apt update`, the signatures couldn't be verified.
 </details>
 
 ### 3. Join working nodes
-<details><summary>Steps</summary>
+<details><summary>📝 Steps</summary>
 
 #### 1. Base Environment Setup (Execute on all Nodes)
 
