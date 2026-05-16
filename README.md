@@ -408,11 +408,13 @@ kubeadm token create --print-join-command
 > This is a classic kubeconfig missing error!
 >
 > The command `kubeadm` is trying to look into your home directory (`/home/ubuntu/.kube/config`) to find the administrative credentials needed to talk to the cluster's API server. Right now, that folder or file doesn't exist for your current user.
+>
+> By default, when you initialize a cluster, the administrative configuration file is generated at a root-protected path: /etc/kubernetes/admin.conf. Regular users (like ubuntu) don't have access to it until you explicitly copy it over.
 
 🛠️ __Fix__: 
 > There are two ways to solve this, depending on whether you've already initialized the master node.
 > 
-> #### 🔧 1️⃣ Already ran kubeadm init earlier on master node
+> #### 🔧 1️⃣ The Permanent Fix (Recommended)
 >
 > If already successfully initialized the cluster on this master node earlier, just need to copy the generated admin configuration to your user's home directory. Run these three commands:
 >
