@@ -58,7 +58,7 @@
 
 <details><summary>5. Verfication & Deployment</summary>
 
-- Check Node Status `kubectl get nodes`
+- Check Node Status `kubectl get node`
 - Deploy Login Application
 - Expose Service - Allow access the service from the public
 </details>
@@ -356,28 +356,232 @@ Verify:
 </details>
 <details><summary>2. Join the cluster</summary>
 
-- **👉 Generate the "Entry Ticket" on the Master Node**
+- **1. Initialise the Control Plane**
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+```
+![image](./img/kubeadm_init_command.png)
+
+<details><summary>⚠️ Crucial Detail for AI Infra/Networking</summary>
+
+This pre-allocates an IP range for your future pods. Since we discussed using Calico or Cilium later, 192.168.0.0/16 is the standard, safest default range to use.
+
+</details>
+
+- **2. Set up local config**
+
+```bash
+# copy the newly generated admin.conf to home directory
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+- **3. Generate the "Entry Ticket" on the Master Node**
+
+> 📝 new token has been created from `kubeadm init` command in above step ☝️
 
 Since your machine might have been running for a while, the previous token may have expired. Please run the following command on k8s-master:
 ```bash
 kubeadm token create --print-join-command 
 ```
-
+![image](./img/verify_join_master_node.png)
 </details>
 
-第二步：获取 Master 的 Join Token
-回到你的 k8s-master 节点，运行以下命令获取加入集群的指令：
-kubeadm token create --print-join-command
+- **4. Join the Worker Nodes**
 
-输出内容大概长这样（记住这个输出，一会儿在 Worker 上跑）：
-kubeadm join 192.168.x.x:6443 --token <token> --discovery-token-ca-cert-hash sha256:<hash>
-提示：如果 Token 过期了（默认 24 小时），随时可以用这个命令重新生成。
+Log into three worker nodes and execute the join command separately.
+
+Or Log into terminal and ssh to worker nodes to execute the command
+
+`ssh ubuntu@<worker-node-ip>`
+
+```bash
+sudo kubeadm join 192.168.64.2:6443 --token 3weunc.c0uxvq24npom5yu7 \
+--discovery-token-ca-cert-hash sha256:b858c6f69607e596d2290ab928f7a79d598bb6327ecf958cc2b0b24c80925014
+```
+
+![image](./img/failure_join_wokrer_node.png)
+❌ `kubeadm join` command on 1k8s-worker-1` is hanging right at the [preflight] Running pre-flight checks step.
+> Since this VM is running locally (likely on UTM given your setup), this hang is almost always caused by a network connectivity or firewall issue preventing the worker node from reaching the control plane API server at `192.168.64.2:6443`
+
+⫶☰ Checklist to diagnose and unbreak it
+
+1. Test the Network Path
+
+Log into k8s-worker-1 via terminal and check if it can actually see the master node's API port:
+```bash
+nc -zv 192.168.64.2 6443
+```
+![image](./img/diagnose_network_path.png)
+
+`No route to host` error means `k8s-worker-1` doesn't even know how to physically route packets to `192.168.64.2`, or an intermediate layer (like the hypervisor's virtual switch) is explicitly dropping/blocking the ARP requests.
+
+Since we are running on UTM virtual machines, this is almost always down to the Network Mode assigned to the VMs in the UTM settings.
+
+Conversation with Gemini
+It looks like your kubeadm join command on k8s-worker-1 is hanging right at the [preflight] Running pre-flight checks step.
+
+Since this VM is running locally (likely on UTM given your setup), this hang is almost always caused by a network connectivity or firewall issue preventing the worker node from reaching the control plane API server at 192.168.64.2:6443.
+
+Here is a quick checklist to diagnose and unbreak it:
+
+1. Test the Network Path
+Open a new terminal tab on that same k8s-worker-1 VM and check if it can actually see the master node's API port:
+
+Bash
+nc -zv 192.168.64.2 6443
+If it times out or hangs: The worker cannot route to the master.
+
+If it says connection refused: The master is reachable, but kube-apiserver isn't running or listening on that interface.
+
+2. Check the Master Node's Firewall
+If you haven't explicitly opened the ports on the control plane (192.168.64.2), ufw might be dropping the packets silently.
+On your master node, temporarily disable the firewall to see if it unblocks the join:
+
+Bash
+sudo ufw disable
+(If this works, you'll want to re-enable it later and specifically allow 6443/tcp, 2379-2380/tcp, 10250/tcp, etc.)
+
+3. Verify kube-apiserver Binding
+On your master node, ensure the API server is actually listening on 192.168.64.2 (and not just 127.0.0.1):
+
+Bash
+sudo ss -tlnp | grep 6443
+4. Peek Behind the Curtain (Verbose Mode)
+kubeadm masks what it's doing during pre-flight checks. Cancel the hung command (Ctrl + C), run a reset to clean up any partial state, and run it again with full verbosity to see exactly which check is getting stuck:
+
+Bash
+sudo kubeadm reset -f
+sudo kubeadm join 192.168.64.2:6443 --token 3weunc.c0uxvq24npom5yu7 --discovery-token-ca-cert-hash sha256:b858c6f69607e596d2290ab928f7a79d598bb6327ecf958cc2b0b24c80925014 --v=5
+The --v=5 flag will output the exact HTTP requests or pre-flight validations (like container runtime checks) it's trying to make.
+
+Let me know what the verbose logs or the nc test turn up!
+
+That No route to host error is our smoking gun. It means k8s-worker-1 doesn't even know how to physically route packets to 192.168.64.2, or an intermediate layer (like the hypervisor's virtual switch) is explicitly dropping/blocking the ARP requests.
+
+Since you're running on UTM virtual machines, this is almost always down to the Network Mode assigned to the VMs in the UTM settings.
+
+🔧 Here is how to isolate and fix it:
+
+1. Check UTM's Network Mode
+
+For VMs to talk to each other and your host, they need to be on the same virtual network fabric.
+
+- Shut down both VMs (k8s-master and k8s-worker-1).
+- Open the VM settings in UTM for both machines.
+- Go to Network.
+
+Ensure the Network Mode is set to Shared Network (or Bridged Advanced, if you are assigning static IPs from your home router).
+
+Note: If one is set to Emulated VLAN, it isolates the VM, which causes exactly this error.
+
+- k8s-master
+![image](./img/network_k8s_master.png)
+- k8s-worker-1     
+![image](./img/network_k8s_worker_1.png)     
+- k8s-worker-2      
+![image](./img/network_k8s_worker_2.png)       
+- k8s-worker-3     
+![image](./img/network_k8s_worker_3.png)
+
+2. Verify IP Assignments & Routing
+
+On k8s-worker-1, run: `ip route` and then try to ping the master's base interface directly:
+![image](./img/verify_ip_route.png)
+
+The worker node has an IP of `192.168.64.3` and clearly knows that the `192.168.64.0/24` subnet belongs directly on its `enp0s1` interface.
+
+The fact that it spits out Destination Host Unreachable instantly means the worker is sending out ARP requests ("Who has `192.168.64.2`?") on that interface, but receiving absolutely no response.
+
+This confirms that the barrier isn't a routing configuration issue inside the OS—it's happening at the `hypervisor/virtual network layer`.
+
+🔧 Here is exactly how to fix this behavior in UTM:
+- Shut down both k8s-master and k8s-worker-1.
+- Open UTM, go to the settings for both VMs, and look at the Network tab.
+- Switch the network mode from Shared Network to Bridged (Advanced).
+- Select your host machine's active network interface (e.g., en0 for Wi-Fi or your ethernet adapter).
+
+![image](./img/fix_utm_network.png)
+
+And then set up netowrk as `Shared Network` again to all nodes 
+
+✅VERIFIED 
+![image](./img/new_ip_master.png)
+![image](./img/new_ip_worker_1.png)
+![image](./img/new_ip_worker_2.png)
+![image](./img/new_ip_worker_3.png)
+![image](./img/ping_master_from_worker-1.png)
+![image](./img/ping_worker_3_from_worker_2.png)
+
+3. Reset and Re-initialise
+
+Because the master node's API server was previously listening on a different network layout, we need to quickly reset the control plane so it advertises on the correct, stable internal IP.
+
+```bash
+# Get your current IP (look at enp0s1)
+ip a
+
+# Clean out the old cluster state
+sudo kubeadm reset -f
+
+# Initialize with your new stable Shared Network IP
+sudo kubeadm init --apiserver-advertise-address=<YOUR_NEW_MASTER_IP> --pod-network-cidr=10.244.0.0/16
+```
+![image](./img/brand_new_kubeadm_join.png)
+
+4. Copy the brand-new `kubeadm join` command printed at the end of the output 
+
+5. On `k8s-worker-1`, `k8s-worker-2`, `k8s-worker-3`
+```bash
+# Clean out the hung pre-flight state
+sudo kubeadm reset -f
+
+# Paste the fresh join command
+sudo kubeadm join 192.168.64.2:6443 --token 01brel.rvknxugmmo7kkee0      --discovery-token-ca-cert-hash sha256:248ba027ec51f36b046c3aeac226d532ec3c07834e6edb7af209e005283afdbb
+```
+
+💬 Run join command again, but append the verbose flag `--v=5` to the end. This tells `kubeadm` to print out every single sicro-step
+```bash
+sudo kubeadm join 192.168.64.2:6443 --token 01bre1.rvknxugmmo7kkee0 --discovery-token-ca-cert-hash sha256:248ba027ec51f36b046c3aeac226d532ec3c07834e6edb7af209e005283afdbb --v=5
+```
+![image](./img/tag--v=5.png)
+
+check worker nodes status
+Run command `kubectl get node` in master nodes
+
+![image](./img/failed_check_nodes_status.png)
+
+Every time you run `kubeadm reset` and re-initialize (`kubeadm init`) on the Master node, Kubernetes generates a brand-new set of administrator keys and certificates under `/etc/kubernetes/admin.conf`. You need to copy this new set of "credentials" to overwrite the existing configuration in your current user's home directory (`~/.kube/config`).
+
+```bash
+# 1. delete legacy certificates configuration
+rm -rf $HOME/.kube
+
+# 2. create a new configuraiton
+mkdir -p $HOME/.kube
+
+# 3. Copies the newly generated cluster config file to your user space
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+# -i flag prompts you for confirmation before overwriting an existing file.
+
+#Changes the file ownership from root to your current user and group, allowing you to run kubectl commands without needing sudo.
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+```
+
+Then verify
+![image](./img/kubectl_get_node.png)
+
+
+
+
 第三步：在 Worker Node 上执行 Join
 分别登录到你的三个 Worker Node，直接运行上面拿到的 kubeadm join 命令。
 运行成功后，你会看到类似 This node has joined the cluster 的提示。
 第四步：在 Master 上验证
 回到 k8s-master，查看节点状态：
-kubectl get nodes
+kubectl get node
 
 可能遇到的状态：
 •	Ready: 完美，一切正常。
@@ -430,6 +634,9 @@ kubeadm token create --print-join-command
 > `sudo kubeadm init --apiserver-advertise-address=192.168.64.2 --pod-network-cidr=10.244.0.0/16`
 >
 > 📝 _After this finishes, it will automatically output the exact `kubeadm join` command you need for the worker nodes, so you won't even need to run the token create command!_
+>
+> ![image](./img/verify_kubeadm_init.png)
+> The missing `/etc/kubernetes/admin.conf` file confirms that `kubeadm init` has not been run yet. Your master node is currently a blank slate, waiting to be initialized.
 
 </details>
 
@@ -595,3 +802,11 @@ Master: ubuntu (12345)
 Worker_1: 
 Worker_2: 
 Worker_3: 
+
+# Background & Concepts
+
+<details><summary>1. Cilium</summary>
+
+[Cilium](https://cilium.io/) is an open-source, cloud-native networking, observability, and security solution for Kubernetes and other containerized workloads. It is powered by eBPF (Extended Berkeley Packet Filter), a Linux kernel technology that allows it to process packets and apply policies directly at the kernel level for high performance and scalability
+
+</details>
