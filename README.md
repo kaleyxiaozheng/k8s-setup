@@ -397,8 +397,7 @@ Or Log into terminal and ssh to worker nodes to execute the command
 `ssh ubuntu@<worker-node-ip>`
 
 ```bash
-sudo kubeadm join 192.168.64.2:6443 --token 3weunc.c0uxvq24npom5yu7 \
---discovery-token-ca-cert-hash sha256:b858c6f69607e596d2290ab928f7a79d598bb6327ecf958cc2b0b24c80925014
+sudo kubeadm join 192.168.64.2:6443 --token 01bre1.rvknxugmmo7kkee0 --discovery-token-ca-cert-hash sha256:248ba027ec51f36b046c3aeac226d532ec3c07834e6edb7af209e005283afdbb
 ```
 
 ![image](./img/failure_join_wokrer_node.png)
@@ -453,7 +452,7 @@ kubeadm masks what it's doing during pre-flight checks. Cancel the hung command 
 
 Bash
 sudo kubeadm reset -f
-sudo kubeadm join 192.168.64.2:6443 --token 3weunc.c0uxvq24npom5yu7 --discovery-token-ca-cert-hash sha256:b858c6f69607e596d2290ab928f7a79d598bb6327ecf958cc2b0b24c80925014 --v=5
+sudo kubeadm join 192.168.64.2:6443 --token 01bre1.rvknxugmmo7kkee0 --discovery-token-ca-cert-hash sha256:248ba027ec51f36b046c3aeac226d532ec3c07834e6edb7af209e005283afdbb --v=5
 The --v=5 flag will output the exact HTTP requests or pre-flight validations (like container runtime checks) it's trying to make.
 
 Let me know what the verbose logs or the nc test turn up!
@@ -573,15 +572,64 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 Then verify
 ![image](./img/kubectl_get_node.png)
 
+6. Join k8s-worker-2, and k8s-worker-3
+![image](./img/join_k8s_worker_2.png)
 
+Because you recently reset and re-initialized your Master node (as mentioned in your previous messages), the old bootstrap token (01brel...) and its associated JWS signature are no longer valid. The worker node is trying to use an expired or non-existent token to fetch the cluster info from the Master, causing it to loop endlessly.
 
+Fix:
+- Generate a new join command on the Master node: `kubeadm token create --print-join-command`
+- `kubeadm join 192.168.64.2:6443 --token <new_token> --discovery-token-ca-cert-hash sha256:<new_sha256_hash>`
 
-第三步：在 Worker Node 上执行 Join
-分别登录到你的三个 Worker Node，直接运行上面拿到的 kubeadm join 命令。
-运行成功后，你会看到类似 This node has joined the cluster 的提示。
-第四步：在 Master 上验证
-回到 k8s-master，查看节点状态：
-kubectl get node
+![image](./img/kubectl_get_nodes.png)
+
+❓ Why is it "NotReady"?
+Because this is a freshly initialized, brand-new cluster, and you haven't installed a CNI (Container Network Interface) plugin yet (such as Calico, Flannel, or Cilium). Without a network plugin, the cluster cannot configure the Pod network across nodes, so Kubernetes flags them as "NotReady."
+
+How to verify?
+- `kubectl describe node <node-name> | grep -i network`
+- `journalctl -u kubelet -n 50 --no-pager | grep -i cni`
+
+![image](./img/verify_cni_installation.png)
+
+To fix this and turn the status to Ready, you need to deploy a CNI plugin. For example, to apply a basic Calico or Cilium manifest:
+
+- For Calico:
+```bash
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+```
+- For Cilium (via CLI)
+```bash
+cilium install
+```
+
+TO install Cilium to `usr/local/bin`
+```bash
+# 1. Download the latest Cilium CLI binary
+CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+CLI_ARCH=amd64
+if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
+curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+
+# 2. Verify the checksum (Optional but good practice)
+sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+
+# 3. Extract the binary to your local path
+sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+```
+# 4. OR install cilium via help
+```bash
+# 1. Add the Cilium Helm repository
+helm repo add cilium https://helm.cilium.io/
+
+# 2. Install the chart into the kube-system namespace
+helm install cilium cilium/cilium --version 1.15.4 --namespace kube-system
+```
+
+Currently, the status of all nodes are still NotReady, I check status via Cilium CLI: `cilium status`
+![image](./img/cilium_status.png)
+
 
 可能遇到的状态：
 •	Ready: 完美，一切正常。
