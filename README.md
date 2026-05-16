@@ -67,7 +67,7 @@
 
 # Create Kubernetes cluster Core Steps Breakdown
 ### 1. Create Master Node with name `k8s-master`
-<details><summary>📝 Steps</summary>
+<details><summary>📌 Instructions</summary>
 
 1. Choose `Create a New Virtual Machine`, then `Virtualize` for best performance
 2. Choose Ubuntu Server ARM64 iso file
@@ -75,7 +75,7 @@
 
 - RAM: save at least 2048 MB (2GB). 
 
- **NOTE:** A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
+ 📝 A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
 
 - CPU: 2
 
@@ -136,7 +136,7 @@ sudo swapoff -a
 </details>
 
 ### 2. Install Container Runtime and K8S Components in `k8s-master` server
-<details><summary>📝 Steps</summary>
+<details><summary>📌 Instructions</summary>
 
 1. Forward IPv4 and allow iptables to see bridged traffic. This is a mandatory prerequisite for Kubernetens networking.
 
@@ -264,9 +264,9 @@ During `apt update`, the signatures couldn't be verified.
 </details>
 
 ### 3. Create and Join k8s worker nodes
-<details><summary>📝 Steps</summary>
+<details><summary>📌 Instructions</summary>
 
-#### 1. Base Environment Setup (Execute on all Nodes)
+<details><summary>1. Base Environment Setup (Execute on all Nodes)</summary>
 
 - **Environment Prerequisites** (Ensure kubeadm join successfully)
   - **Unique Hostname**：Unique hostnames across the cluster. (e.g., k8s-worker-1, k8s-worker-2).
@@ -353,6 +353,18 @@ Verify:
 ![image](./img/k8s-worker-2-new-ip.png)
 ![image](./img/k8s-worker-3-new-ip.png)
 
+</details>
+<details><summary>2. Join the cluster</summary>
+
+- **👉 Generate the "Entry Ticket" on the Master Node**
+
+Since your machine might have been running for a while, the previous token may have expired. Please run the following command on k8s-master:
+```bash
+kubeadm token create --print-join-command 
+```
+
+</details>
+
 第二步：获取 Master 的 Join Token
 回到你的 k8s-master 节点，运行以下命令获取加入集群的指令：
 kubeadm token create --print-join-command
@@ -380,6 +392,45 @@ AI 任务通常需要调度到特定节点。你可以练习给其中一个 Work
 这能帮你练习之后的 nodeSelector 或 Affinity 配置。
 	3.	安全加固 (CIS Benchmark)：
 在加入节点后，可以尝试运行 kube-bench 扫描一下 Worker 的安全配置。这是 Security 岗位面试时可以聊的“实战细节”。
+</details>
+
+
+<details><summary>🎯 Troubleshooting</summary>
+
+<details><summary>1. Fail to generate Entry Ticket</summary>
+
+```bash
+kubeadm token create --print-join-command 
+```
+![image](./img/failure_generate_entry_ticket.png)
+
+✨💡🌟 __Analyse__: 
+> This is a classic kubeconfig missing error!
+>
+> The command `kubeadm` is trying to look into your home directory (`/home/ubuntu/.kube/config`) to find the administrative credentials needed to talk to the cluster's API server. Right now, that folder or file doesn't exist for your current user.
+
+🛠️ __Fix__: 
+> There are two ways to solve this, depending on whether you've already initialized the master node.
+> 
+> #### 🔧 1️⃣ Already ran kubeadm init earlier on master node
+>
+> If already successfully initialized the cluster on this master node earlier, just need to copy the generated admin configuration to your user's home directory. Run these three commands:
+>
+> `# in bash `  
+> `mkdir -p $HOME/.kube`  
+> `sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config`  
+> `sudo chown $(id -u):$(id -g) $HOME/.kube/config`
+>
+> #### 🔧 2️⃣ Already ran kubeadm init earlier on master node
+>
+> If this is a brand-new master node and you haven't actually initialized the cluster yet, `kubeadm token create` won't work because there is no cluster to join yet! You'll need to initialize it first (replace the IP with your master node's actual internal IP if it's different):  
+> 
+> `sudo kubeadm init --apiserver-advertise-address=192.168.64.2 --pod-network-cidr=10.244.0.0/16`
+>
+> 📝 __After this finishes, it will automatically output the exact `kubeadm join` command you need for the worker nodes, so you won't even need to run the token create command!__
+
+</details>
+
 </details>
 
 # Develop and Deploy App Core Steps Breakdown
