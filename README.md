@@ -75,7 +75,7 @@
 
 - RAM: save at least 2048 MB (2GB). 
 
- 📝 A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start.
+ 📝 _A minimum of 2GB of RAM is required; otherwise, the K8s control plane will not start_
 
 - CPU: 2
 
@@ -283,13 +283,13 @@ k8s-worker-1 on UTM by cloning the Master Node:
     > - Rename the new server as `k8s-worker-1`, `k8s-worker-2`, and `k8s-worker-3`
     > - ![image](./img/edit-k8s-worker-nodes.png)
     > - ![image](./img/rename_k8s_worker_nodes.png)
-    > - **Note**: This avoids redundant installation of Docker, kubeamd, and dependencies, maximizing efficiency.
+    > 📝 _This avoids redundant installation of Docker, kubeamd, and dependencies, maximizing efficiency_
 
    👉 Step 2: Reset Network Identity (Critical Step):
     > - Go to the Settings -> Network menu for k8s-worker1
     > - Click the `Refresh/Random` button next to the MAC Address field to generate a new MAC address
     > - ![image](./img/reset_network_k8s_worker_nodes.png)
-    > - **Note**: Skipping this step will cause a network conflict between the Master and Worker nodes due to identical MAC addresses.
+    > 📝 _Skipping this step will cause a network conflict between the Master and Worker nodes due to identical MAC addresses_
     > - Start k8s-worker1 and log in
     > - ![image](./img/login_k8s_worker_nodes.png)
 
@@ -427,7 +427,7 @@ kubeadm token create --print-join-command
 > 
 > `sudo kubeadm init --apiserver-advertise-address=192.168.64.2 --pod-network-cidr=10.244.0.0/16`
 >
-> 📝 __After this finishes, it will automatically output the exact `kubeadm join` command you need for the worker nodes, so you won't even need to run the token create command!__
+> 📝 _After this finishes, it will automatically output the exact `kubeadm join` command you need for the worker nodes, so you won't even need to run the token create command!_
 
 </details>
 
@@ -449,7 +449,7 @@ kubeadm token create --print-join-command
 
 <details><summary>3. Deploy the app to local Cluster</summary>
 
-> **Note:** Config PersistentVolume(PV) and PersistentVolumeClaim(PVC) for database persistence
+> 📝 _Config PersistentVolume(PV) and PersistentVolumeClaim(PVC) for database persistence_
 
 > **Tips:** 
 > 1. Avoid hardcoding IP addresses when connecting to the database. Using Service name (e.g., http://db-service:3306) for database directly access. 预留问题1: 以后使用https
